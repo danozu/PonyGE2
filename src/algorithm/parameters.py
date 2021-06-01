@@ -13,6 +13,7 @@ params = {
         # Set default step and search loop functions
         'PROBLEM': 'multiplexer',
         'SIMULATOR': 'ghdl', #ghdl, nvc
+        'PROBLEM_TYPE': 'vhdl',
         'SEARCH_LOOP': 'search_loop',
         'STEP': 'step',
 
@@ -377,102 +378,61 @@ def set_params(command_line_args, create_files=True):
             
         #Criando testbench
         #variables contains inputs and ONE output (at the end)
-        #dataset = open(r"C:\Users\allan\Dropbox\Doutorado\PonyGE2\datasets\multiplexer\Train.csv","r")
-#        dataset = open("../../VHDL/ssd/Train.csv","r")
-        if params['PROBLEM'] == 'ssd':
-            dataset = open(r"../../VHDL/ssd/Train.csv","r")
-    
-        elif params['PROBLEM'] == 'multiplexer':
-            dataset = open(r"../../VHDL/multiplexer/Train.csv","r")
-        
-        #with open("Train.csv","r") as f:
-        variables_string = dataset.readline()
-        variables = variables_string.split()
-        
-        #quantity of inputs
-        inputs = len(variables) - 1
-        
-        #file = open(r"C:\Users\allan\Dropbox\Doutorado\VHDL\multiplexer\tb.vhdl","w")
-        #file = open("..\..\multiplexer\tb.vhdl","w")
-        if params['PROBLEM'] == 'ssd':
-            file = open(r"../../VHDL/ssd/tb2.vhdl","w")
-        elif params['PROBLEM'] == 'multiplexer':
-            file = open(r"../../VHDL/multiplexer/tb2.vhdl","w")
-#        file = open("../../VHDL/ssd/tb2.vhdl","w")
-        
-        file.write("""library ieee;
-        use ieee.std_logic_textio.all;
-        use ieee.std_logic_1164.all;
-        
-        entity tb is
-        end tb;
-        
-        architecture test of tb is
-        component ind
-        port(""")
-        
-        #SSD             
-        for i in range(inputs):
-            file.write(variables[i] + ": in STD_LOGIC_VECTOR(3 downto 0); \n") #write inputs
-        file.write(variables[inputs] + """: out STD_LOGIC_VECTOR (6 downto 0) --abcdefg
-		
-	);
-	end component; 
+        if params['PROBLEM_TYPE'] == 'vhdl':
+            if params['PROBLEM'] == 'ssd':
+                dataset = open(r"../../VHDL/ssd/Train.csv","r")
+            elif params['PROBLEM'] == 'multiplexer':
+                dataset = open(r"../../VHDL/multiplexer/Train.csv","r")
+            
+            #with open("Train.csv","r") as f:
+            variables_string = dataset.readline()
+            variables = variables_string.split()
+            
+            #quantity of inputs
+            inputs = len(variables) - 1
 
-signal d: STD_LOGIC_VECTOR (3 downto 0):= (others => '0');
-signal o: STD_LOGIC_VECTOR (6 downto 0):= (others => '0');
-
-
-begin
-individual: ind port map (d => d, o => o); 
-
-	process begin 
-                   
-                   """)
-        
-        #multiplexer 11 bits
-#        for i in range(inputs):
-#            file.write(variables[i] + ": in std_ulogic(3 downto 0); \n") #write inputs
-#        file.write(variables[inputs] + ": out std_ulogic(6 downto 0)); \nend component; \nsignal ") #write output
-#        for i in range(inputs):
-#            file.write(variables[i] + ", ") #write inputs
-#        file.write(variables[inputs] + ": std_ulogic; \nbegin \nindividual: ind  port map (")
-#        for i in range(inputs):
-#            file.write(variables[i] + " => " + variables[i] + ", ")
-#        file.write(variables[inputs] + " => " + variables[inputs] + "); \nprocess begin \n")
-        
-        #dataset = open("Train.csv","r")
-        data = dataset.readlines()[0:] #it is reading from second line
-        for line in data:
-                
-        #with open("Train.csv","r") as f:
-        #    for line in f:
-        #        data = f.readline()
-        #        print(len(data))
-            data_separate = line.split()
+            if params['PROBLEM'] == 'ssd':
+                file = open(r"../../VHDL/ssd/tb2.vhdl","w")
+            elif params['PROBLEM'] == 'multiplexer':
+                file = open(r"../../VHDL/multiplexer/tb2.vhdl","w")
+            
+            file.write("""library ieee;
+            use ieee.std_logic_textio.all;
+            use ieee.std_logic_1164.all;
+            
+            entity tb is
+            end tb;
+            
+            architecture test of tb is
+            component ind
+            port(""")
+            
+            #SSD             
             for i in range(inputs):
-                file.write(variables[i] + ' <= "' + data_separate[i] + '";\n')
-            file.write("wait for 1 ns; \nreport " + "'" + " & to_hstring(o) & " + "'" + ";\n\n")
-            #outros
-            #file.write("wait for 1 ns; \nreport std_ulogic'image(" + variables[inputs] + ") & CR;\n\n")
-        
-        dataset.close()
-        
-        file.write("	wait; \n	end process; \nend test;")
-        file.close()
-        
-        
-       
-        #Creating a file ind.vhdl to check if the errors stop
-#        file = open(r"C:\Users\allan\Dropbox\Doutorado\VHDL\multiplexer\ind.vhdl","w")
-#        file.write("""entity ind is end ind;""")
-#        file.close()
-        
-#        import subprocess
-        #Analysing testbench and creating executable
-#        subprocess.run(['ghdl', '-a', 'tb.vhdl'],cwd='..\..\VHDL\ssd')
-#        subprocess.run(['ghdl', '-a', '--std=08', 'tb.vhdl'],cwd='../../VHDL/ssd')
-#        subprocess.run(['ghdl', '-a', '--std=08', 'tb.vhdl'],cwd=r'C:\Users\allan\Downloads\Doutorado\VHDL\ssd')
-        #subprocess.run(['ghdl', '-e', 'tb'],cwd='..\..\VHDL\multiplexer') #talvez possa retirar depois
-#        subprocess.run(['ghdl', '-e', '--std=08', 'tb'],cwd='../../VHDL/ssd') #talvez possa retirar depois
-#        subprocess.run(['ghdl', '-e', '--std=08', 'tb'],cwd=r'C:\Users\allan\Downloads\Doutorado\VHDL\ssd') #talvez possa retirar depois
+                file.write(variables[i] + ": in STD_LOGIC_VECTOR(3 downto 0); \n") #write inputs
+            file.write(variables[inputs] + """: out STD_LOGIC_VECTOR (6 downto 0) --abcdefg
+            
+            );
+            end component; 
+
+            signal d: STD_LOGIC_VECTOR (3 downto 0):= (others => '0');
+            signal o: STD_LOGIC_VECTOR (6 downto 0):= (others => '0');
+
+            begin
+            individual: ind port map (d => d, o => o); 
+
+            process begin 
+                       
+                       """)
+            
+            data = dataset.readlines()[0:] #it is reading from second line
+            for line in data:
+                data_separate = line.split()
+                for i in range(inputs):
+                    file.write(variables[i] + ' <= "' + data_separate[i] + '";\n')
+                file.write("wait for 1 ns; \nreport " + "'" + " & to_hstring(o) & " + "'" + ";\n\n")
+            
+            dataset.close()
+            
+            file.write("	wait; \n	end process; \nend test;")
+            file.close()
