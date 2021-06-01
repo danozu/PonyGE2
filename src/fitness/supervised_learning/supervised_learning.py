@@ -17,23 +17,14 @@ import shutil
 
 
 def subprocess_cmd(command):
-    process = subprocess.Popen(command,stdout=subprocess.PIPE, shell=True, cwd=r'../../VHDL/individuals')#'..\..\VHDL\multiplexer')
-    #process = subprocess.Popen(command,stdout=subprocess.PIPE, shell=True, cwd='../../VHDL/multiplexer')#'/individuals')
-    #process = subprocess.Popen(command,stdout=subprocess.PIPE, shell=True, cwd='../../VHDL/individuals')
+    process = subprocess.Popen(command,stdout=subprocess.PIPE, shell=True, cwd=r'../../VHDL/individuals')
     proc_stdout = process.communicate()[0].strip()
     return proc_stdout.decode('utf-8')
-
-def binaryToDecimal(n):
-    return int(n,2)
-
 
 def eval_vhdl(ind):
     r = random.randint(0,10**10)
     vhdl = open(r'../../VHDL/individuals/ind' + str(r) + '.vhdl','w+')
-#    vhdl = open('../../VHDL/multiplexer/ind.vhdl','w+')
-    
-#    vhdl = open('../../VHDL/individuals/ind' + str(r) + '.vhdl','w+')
-    #vhdl = open(r'C:\Users\allan\Dropbox\Doutorado\VHDL\multiplexer\ind.vhdl','w+')
+
     # Replace the target string
     ind = ind.replace('ind', 'ind' + str(r))
     ind = ind.replace('""', '')
@@ -57,21 +48,12 @@ def eval_vhdl(ind):
     # Write the file out again
     with open(r'../../VHDL/individuals/tb' + str(r) + '.vhdl', 'w') as file:
         file.write(filedata)
-      
-#    subprocess.run(['ghdl', '-a', 'tb.vhdl'],cwd='../../VHDL/multiplexer')
-#    subprocess.run(['ghdl', '-e', 'tb'],cwd='../../VHDL/multiplexer') #talvez possa retirar depois
-    
-    #result = subprocess_cmd("ghdl -a ind.vhdl & ghdl -r tb")
-#    result = subprocess_cmd("ghdl -a ind.vhdl ; ghdl -r tb")
+
     if params['SIMULATOR'] == 'ghdl':
         result = subprocess_cmd("ghdl -a --std=08 --work=" + str(r) + " ind" + str(r) + ".vhdl tb" + str(r) + ".vhdl ; ghdl -e --std=08 --work=" + str(r) + " tb" + str(r) + " ; ghdl -r --std=08 --work=" + str(r) + " tb" + str(r))
     elif params['SIMULATOR'] == 'nvc':
         result = subprocess_cmd("nvc --std=08 --work=" + str(r) + " -a ind" + str(r) + ".vhdl tb" + str(r) + ".vhdl -e tb" + str(r) + "-r")
-#    result = subprocess_cmd("ghdl -a ind" + str(r) + ".vhdl ; ghdl -r tb")
 
-#    os.remove('../../VHDL/individuals/tb' + str(r) + '.vhdl')
-#    os.remove('../../VHDL/individuals/ind' + str(r) + '.vhdl')
-#    os.remove('../../VHDL/individuals/' + str(r) + '-obj08.cf')
     os.remove(r'../../VHDL/individuals/tb' + str(r) + '.vhdl')
     os.remove(r'../../VHDL/individuals/ind' + str(r) + '.vhdl')
     if params['SIMULATOR'] == 'ghdl':
@@ -80,28 +62,12 @@ def eval_vhdl(ind):
         shutil.rmtree(r'../../VHDL/individuals//' + str(r))
     
     result_lines = result.replace("\r", "")
-#    print(result_lines)
-    #each_line = result_lines.split()
-    #print(len(each_line))
 
-    #yhat=np.zeros([4,], dtype=float)
     #split the results (each line is splitted in three pieces and we want the last one)
     results_splitted = result_lines.split("'")
-    
-#    print(results_splitted)
  
     yhat = results_splitted[1:len(results_splitted):2]
-    #yhat = results_splitted[2:len(results_splitted):3]
-#    print(type(yhat[0]))
-#    yhat = np.chararray((124),unicode=True)#np.empty(4, dtype='S')
-#    l = 0
-#    for i in range(124):
-#        l += result_lines[l:].find('note')
-#        l += 8
-        #yhat[i] = int(result_lines[l])
-#        yhat[i] = result_lines[l]
 
-#    print(yhat)
     if params['PROBLEM'] == 'ssd':
         for i in range(len(yhat)):
             yhat[i] = int(yhat[i],16)
@@ -109,8 +75,6 @@ def eval_vhdl(ind):
     elif params['PROBLEM'] == 'multiplexer':
         for i in range(len(yhat)):
             yhat[i] = int(yhat[i])
-    
-    
     
     return yhat
 
@@ -198,15 +162,23 @@ class supervised_learning(base_ff):
                 return params['ERROR_METRIC'](y, yhat)
 
         else:
-            # phenotype won't refer to C
-            yhat = eval_vhdl(ind.phenotype)
-            
-            if params['lexicase']:
-                self.predict_result = np.equal(y,yhat)
-                return params['ERROR_METRIC'](y, yhat), self.predict_result
+            if params['PROBLEM_TYPE'] == 'vhdl':
+                yhat = eval_vhdl(ind.phenotype)
+                if params['lexicase']:
+                    assert np.isrealobj(yhat)
+                    self.predict_result = np.equal(y,yhat)
+                    return params['ERROR_METRIC'](y, yhat), self.predict_result
+                else:
+                    assert np.isrealobj(yhat)
+                    # let's always call the error function with the true
+                    # values first, the estimate second
+                    return params['ERROR_METRIC'](y, yhat)
             else:
+                # phenotype won't refer to C
+                yhat = eval(ind.phenotype)
                 assert np.isrealobj(yhat)
-    
+
                 # let's always call the error function with the true
                 # values first, the estimate second
                 return params['ERROR_METRIC'](y, yhat)
+            
