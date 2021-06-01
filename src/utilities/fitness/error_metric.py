@@ -14,7 +14,7 @@ def mae(y, yhat):
     :return: The mean absolute error.
     """
     
-return np.mean(np.abs(y - yhat))
+    return np.mean(np.abs(y - yhat))
 
 # Set maximise attribute for mae error metric.
 mae.maximise = False
