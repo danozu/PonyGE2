@@ -13,7 +13,7 @@ params = {
         # Set default step and search loop functions
         'PROBLEM': 'multiplexer',
         'SIMULATOR': 'ghdl', #ghdl, nvc
-        'PROBLEM_TYPE': 'vhdl',
+        'PROBLEM_TYPE': None, #'vhdl',
         'SEARCH_LOOP': 'search_loop',
         'STEP': 'step',
 
