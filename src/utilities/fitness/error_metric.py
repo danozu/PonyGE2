@@ -14,26 +14,9 @@ def mae(y, yhat):
     :return: The mean absolute error.
     """
     
-    #Verifica quais são iguais
-    #y_str = (y.astype(int)).astype(str) #multiplexer
-    #print(yhat)
-    #compare = np.in1d(y_str,yhat)
-    
-    #compare = np.compare_chararrays(y_str,yhat,"==", True) #multiplexer
-#    print(y_str)
-#    print(yhat)
-#    print(compare)
-#    print(np.mean(compare))
-
-    compare = np.equal(y,yhat)
-    
- #   self.predict_result = compare
-    
-    #return np.mean(np.abs(y - yhat))
-    return 1 - np.mean(compare)
+return np.mean(np.abs(y - yhat))
 
 # Set maximise attribute for mae error metric.
-# In this setup I put True
 mae.maximise = False
 
 
