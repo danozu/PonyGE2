@@ -1,7 +1,7 @@
 import numpy as np
 np.seterr(all="raise")
 
-from algorithm.parameters import params
+from algorithm.parameters import params, set_params
 from utilities.fitness.get_data import get_data
 from utilities.fitness.math_functions import *
 from utilities.fitness.optimize_constants import optimize_constants
@@ -15,69 +15,10 @@ import random
 import os
 import shutil
 
+from stats.stats import stats
 
-def subprocess_cmd(command):
-    process = subprocess.Popen(command,stdout=subprocess.PIPE, shell=True, cwd=r'../../VHDL/individuals')
-    proc_stdout = process.communicate()[0].strip()
-    return proc_stdout.decode('utf-8')
-
-def eval_vhdl(ind):
-    r = random.randint(0,10**10)
-    vhdl = open(r'../../VHDL/individuals/ind' + str(r) + '.vhdl','w+')
-
-    # Replace the target string
-    ind = ind.replace('ind', 'ind' + str(r))
-    ind = ind.replace('""', '')
-
-    vhdl.write(ind)
-    vhdl.close()
-    
-    if params['PROBLEM'] == 'ssd':
-    
-        with open(r'../../VHDL/ssd/tb.vhdl', 'r') as file :
-            filedata = file.read()
-    
-    elif params['PROBLEM'] == 'multiplexer':
-        with open(r'../../VHDL/multiplexer/tb.vhdl', 'r') as file :
-            filedata = file.read()
-    
-    # Replace the target string
-    filedata = filedata.replace('ind', 'ind' + str(r))
-    filedata = filedata.replace('tb', 'tb' + str(r))
-    
-    # Write the file out again
-    with open(r'../../VHDL/individuals/tb' + str(r) + '.vhdl', 'w') as file:
-        file.write(filedata)
-
-    if params['SIMULATOR'] == 'ghdl':
-        result = subprocess_cmd("ghdl -a --std=08 --work=" + str(r) + " ind" + str(r) + ".vhdl tb" + str(r) + ".vhdl ; ghdl -e --std=08 --work=" + str(r) + " tb" + str(r) + " ; ghdl -r --std=08 --work=" + str(r) + " tb" + str(r))
-    elif params['SIMULATOR'] == 'nvc':
-        result = subprocess_cmd("nvc --std=08 --work=" + str(r) + " -a ind" + str(r) + ".vhdl tb" + str(r) + ".vhdl -e tb" + str(r) + "-r")
-
-    os.remove(r'../../VHDL/individuals/tb' + str(r) + '.vhdl')
-    os.remove(r'../../VHDL/individuals/ind' + str(r) + '.vhdl')
-    if params['SIMULATOR'] == 'ghdl':
-        os.remove(r'../../VHDL/individuals//' + str(r) + '-obj08.cf')
-    elif params['SIMULATOR'] == 'nvc':
-        shutil.rmtree(r'../../VHDL/individuals//' + str(r))
-    
-    result_lines = result.replace("\r", "")
-
-    #split the results (each line is splitted in three pieces and we want the last one)
-    results_splitted = result_lines.split("'")
- 
-    yhat = results_splitted[1:len(results_splitted):2]
-
-    if params['PROBLEM'] == 'ssd':
-        for i in range(len(yhat)):
-            yhat[i] = int(yhat[i],16)
-    
-    elif params['PROBLEM'] == 'multiplexer':
-        for i in range(len(yhat)):
-            yhat[i] = int(yhat[i])
-    
-    return yhat
-
+from functions import *
+          
 class supervised_learning(base_ff):
     """
     Fitness function for supervised learning, ie regression and
@@ -108,8 +49,6 @@ class supervised_learning(base_ff):
         # Regression/classification-style problems use training and test data.
         if params['DATASET_TEST']:
             self.training_test = True
-
-    
 
     def evaluate(self, ind, **kwargs):
         """
@@ -162,23 +101,46 @@ class supervised_learning(base_ff):
                 return params['ERROR_METRIC'](y, yhat)
 
         else:
-            if params['PROBLEM_TYPE'] == 'vhdl':
-                yhat = eval_vhdl(ind.phenotype)
-                if params['lexicase']:
-                    assert np.isrealobj(yhat)
-                    self.predict_result = np.equal(y,yhat)
-                    return params['ERROR_METRIC'](y, yhat), self.predict_result
-                else:
-                    assert np.isrealobj(yhat)
-                    # let's always call the error function with the true
-                    # values first, the estimate second
-                    return params['ERROR_METRIC'](y, yhat)
-            else:
-                # phenotype won't refer to C
-                yhat = eval(ind.phenotype)
-                assert np.isrealobj(yhat)
+            # phenotype won't refer to C
+            #print(ind.phenotype)
+            yhat = eval(ind.phenotype)
+#            y = (y > 0)
+#            yhat = (yhat > 0)
+            
+#            if params['SAMPLING'] == 'interleaved_one':
+#                if stats['gen'] % 2 == 0: #even
+#                    pass
+#                else: #odd
+#                    r = random.randint(0,len(y)-1)
+#                    y = y[r]
+#                    yhat = yhat[r]
+#            elif params['SAMPLING'] == 'interleaved_rand':
+#                print("doing interleaved")
+#                if stats['gen'] % 2 == 0: #even
+#                    pass
+#                else: #odd
+#                    list_indexes = list(range(len(y)))
+#                    random.shuffle(list_indexes)
+#                    r = random.random() #per cent between 0 and 100%
+                    #n = max(1,int(len(y)*r)) #number of samples used
+#                    n = random.randint(1,len(y)) #number of samples used
+#                    y = y[list_indexes[0:n]]
+#                    yhat = [yhat[i] for i in list_indexes[0:n]]
+#                    print(len(y),len(yhat))
+            
+            assert np.isrealobj(yhat)
 
+            error = params['ERROR_METRIC'](y, yhat)
+            
+            if params['lexicase']:
+                if params['LEXICASE_EACH_BIT']:
+                    pass #TODO complete afterwards                    
+                else:
+                    self.predict_result = np.equal(y,yhat)
+                    return error, self.predict_result
+            
+            else:
+                self.n_samples = len(y)
                 # let's always call the error function with the true
                 # values first, the estimate second
-                return params['ERROR_METRIC'](y, yhat)
-            
+                return error#, self.n_samples
